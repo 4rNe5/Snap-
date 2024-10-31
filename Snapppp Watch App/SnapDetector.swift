@@ -1,14 +1,25 @@
-// SnapDetector.swift
+//
+//  SnapDetector.swift
+//  Snapppp
+//
+//  Created by 4rNe5 on 10/31/24.
+//
+import CoreMotion
+import SwiftUI
+
 class SnapDetector: ObservableObject {
     private let motionManager = CMMotionManager()
+    private let motionQueue = OperationQueue()
     @Published var snapCount = 0
     @Published var isEnabled = false
+    @Published var hapticStyle: HapticStyle = .none
     
-    var snapThreshold: Double = 3.0
-    var minTimeBetweenSnaps: Double = 0.5
+    var snapThreshold: Double = 2.5
+    var minTimeBetweenSnaps: Double = 0.2
     private var lastSnapTime = Date()
     
     init() {
+        motionQueue.name = "MotionQueue"
         setupMotionDetection()
     }
     
@@ -18,25 +29,24 @@ class SnapDetector: ObservableObject {
             return
         }
         
-        motionManager.accelerometerUpdateInterval = 0.1
-        motionManager.startAccelerometerUpdates(to: .main) { [weak self] (data, error) in
+        motionManager.accelerometerUpdateInterval = 1.0 / 60.0
+        
+        motionManager.startAccelerometerUpdates(to: motionQueue) { [weak self] (data, error) in
             guard let self = self,
                   let acceleration = data?.acceleration,
                   self.isEnabled else { return }
             
-            let magnitude = sqrt(
-                pow(acceleration.x, 2) +
-                pow(acceleration.y, 2) +
-                pow(acceleration.z, 2)
-            )
+            let magnitude = abs(acceleration.x) + abs(acceleration.y) + abs(acceleration.z)
             
             let currentTime = Date()
             let timeSinceLastSnap = currentTime.timeIntervalSince(self.lastSnapTime)
             
             if magnitude > self.snapThreshold && timeSinceLastSnap > self.minTimeBetweenSnaps {
-                self.snapCount += 1
+                DispatchQueue.main.async {
+                    self.snapCount += 1
+                    self.hapticStyle.play()
+                }
                 self.lastSnapTime = currentTime
-                WKInterfaceDevice.current().play(.click)
             }
         }
         
@@ -54,5 +64,9 @@ class SnapDetector: ObservableObject {
         } else {
             motionManager.stopAccelerometerUpdates()
         }
+    }
+    
+    deinit {
+        motionManager.stopAccelerometerUpdates()
     }
 }

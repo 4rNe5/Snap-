@@ -1,4 +1,12 @@
-// SettingsView.swift
+//
+//  SettingsView.swift
+//  Snapppp
+//
+//  Created by 4rNe5 on 10/31/24.
+//
+import SwiftUI
+import WatchKit
+
 struct SettingsView: View {
     @ObservedObject var snapDetector: SnapDetector
     @Environment(\.dismiss) var dismiss
@@ -28,6 +36,18 @@ struct SettingsView: View {
                 }
             }
             
+            Section(header: Text("햅틱 피드백")) {
+                Picker("진동 강도", selection: $snapDetector.hapticStyle) {
+                    ForEach(HapticStyle.allCases, id: \.self) { style in
+                        Text(style.rawValue).tag(style)
+                    }
+                }
+                
+                Button("테스트") {
+                    snapDetector.hapticStyle.play()
+                }
+            }
+            
             Section(header: Text("정보")) {
                 Text("버전 1.0.0")
                     .foregroundColor(.gray)
@@ -45,3 +65,4 @@ struct SettingsView: View {
         }
     }
 }
+
